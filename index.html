@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mixer 4CH</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow">audio mixer</p>
+        <h1>Mixer 4CH</h1>
+        <p class="subtitle">Importe tes sons, règle volume, pan, EQ, mute, master et exporte ton mix en WAV.</p>
+      </div>
+
+      <div class="hero-right">
+        <canvas id="waveCanvas" width="240" height="72" class="waveform"></canvas>
+        <div id="masterVu" class="master-vu" aria-label="VU mètre master"></div>
+      </div>
+    </section>
+
+    <section class="mixer-card">
+      <div id="channelGrid" class="channels-grid"></div>
+    </section>
+
+    <section class="master-card">
+      <div class="master-title-block">
+        <p class="section-label">master</p>
+        <strong id="transportStatus">stopped</strong>
+      </div>
+
+      <div class="master-control">
+        <span>0</span>
+        <input id="masterFader" type="range" min="0" max="100" value="80" />
+        <span>100</span>
+        <output id="masterVal">80</output>
+      </div>
+
+      <div class="transport">
+        <button id="btnStop" class="transport-btn secondary" type="button">Stop</button>
+        <button id="btnPlay" class="transport-btn primary" type="button">Play</button>
+        <button id="btnExport" class="transport-btn secondary" type="button">Export WAV</button>
+      </div>
+    </section>
+
+    <section class="hint-card">
+      <strong>À modifier facilement :</strong>
+      <span>les noms, couleurs, volumes initiaux et réglages sont dans <code>js/config.js</code>.</span>
+    </section>
+  </main>
+
+  <script src="js/config.js" defer></script>
+  <script src="js/audio-engine.js" defer></script>
+  <script src="js/ui.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
