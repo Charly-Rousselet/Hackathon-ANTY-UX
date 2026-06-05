@@ -20,6 +20,37 @@ class AudioEngine {
     this.isPlaying = false;
     this.startedAt = 0;
     this.pauseOffset = 0;
+    
+    // Kick countdown system
+    this.kickValue = 0;
+    this.kickCountdownInterval = null;
+    
+    // Store original config for resets
+    this.originalConfig = JSON.parse(JSON.stringify(config));
+  }
+
+  resetToDefaults() {
+    this.cleanup();
+    this.context = null;
+    this.masterGain = null;
+    this.masterAnalyser = null;
+    this.channels = this.originalConfig.channels.map((ch) => ({
+      ...ch,
+      buffer: null,
+      fileName: "",
+      duration: 0,
+      source: null,
+      gain: null,
+      panNode: null,
+      filters: [],
+      analyser: null
+    }));
+    this.masterVolume = this.originalConfig.masterVolume ?? 80;
+    this.isPlaying = false;
+    this.startedAt = 0;
+    this.pauseOffset = 0;
+    this.kickValue = 0;
+    this.kickCountdownInterval = null;
   }
 
   async init() {
@@ -193,6 +224,19 @@ class AudioEngine {
     this.isPlaying = false;
   }
 
+  cleanup() {
+    this.stop();
+    this.stopKickCountdown();
+    
+    if (this.context && this.context.state !== "closed") {
+      this.context.close();
+    }
+    
+    this.context = null;
+    this.masterGain = null;
+    this.masterAnalyser = null;
+  }
+
   stopSourcesOnly() {
     this.channels.forEach((ch) => {
       if (!ch.source) return;
@@ -351,5 +395,32 @@ class AudioEngine {
     }
 
     return new Blob([arrayBuffer], { type: "audio/wav" });
+  }
+
+  startKickCountdown() {
+    if (this.kickCountdownInterval) {
+      clearInterval(this.kickCountdownInterval);
+    }
+    this.kickValue = this.channels[0].vol; // Start from current volume
+    this.kickCountdownInterval = setInterval(() => {
+      if (this.kickValue > 0) {
+        this.kickValue -= 1;
+        this.setVolume(0, this.kickValue); // Apply directly to channel volume
+      } else {
+        clearInterval(this.kickCountdownInterval);
+        this.kickCountdownInterval = null;
+      }
+    }, 1000);
+  }
+
+  stopKickCountdown() {
+    if (this.kickCountdownInterval) {
+      clearInterval(this.kickCountdownInterval);
+      this.kickCountdownInterval = null;
+    }
+  }
+
+  getKickValue() {
+    return this.kickValue;
   }
 }
