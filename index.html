@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mixer 4CH</title>
+  <title>HellSongMixer</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -11,7 +11,7 @@
     <section class="hero-card">
       <div>
         <p class="eyebrow">audio mixer</p>
-        <h1>Mixer 4CH</h1>
+        <h1>HellSongMixer</h1>
         <p class="subtitle">Importe tes sons, règle volume, pan, EQ, mute, master et exporte ton mix en WAV.</p>
       </div>
 
@@ -31,11 +31,16 @@
         <strong id="transportStatus">stopped</strong>
       </div>
 
-      <div class="master-control">
-        <span>0</span>
-        <input id="masterFader" type="range" min="0" max="100" value="80" />
-        <span>100</span>
-        <output id="masterVal">80</output>
+      <div class="master-control launcher-control">
+        <div class="launcher-track">
+          <div class="launcher-fill" id="launcherFill"></div>
+          <div class="launcher-ball" id="launcherBall"></div>
+        </div>
+        <div class="launcher-row">
+          <button class="launcher-btn" id="launcherBtn" type="button">⚡ CHARGE</button>
+          <output id="masterVal">80</output>
+        </div>
+        <input id="masterFader" type="range" min="0" max="100" value="80" style="display:none" />
       </div>
 
       <div class="transport">

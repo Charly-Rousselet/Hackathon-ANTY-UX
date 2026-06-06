@@ -361,6 +361,17 @@ h1 {
   gap: 20px;
   padding: 18px;
 }
+/* launcher override — control spans all 3 cols in its own row */
+.master-card:has(.launcher-control) {
+  grid-template-columns: 170px 1fr auto;
+  grid-template-rows: auto;
+}
+.launcher-control {
+  grid-column: 2 / 3;
+  display: flex !important;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .master-title-block strong { display: block; margin-top: 4px; font-size: 22px; letter-spacing: -0.04em; }
 
@@ -615,4 +626,78 @@ h1 {
     display: flex;
     justify-content: center;
     gap: 15px;
+}
+/* Synth progress bar */
+.micro-fader-bar-bg {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.micro-fader-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--channel-color, #7F77DD);
+  transition: width 80ms linear;
+}
+
+/* ===== LAUNCHER ===== */
+.launcher-track {
+  position: relative;
+  width: 100%;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+}
+.launcher-fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4ade80, #facc15, #f87171);
+  pointer-events: none;
+}
+.launcher-ball {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 14px rgba(255,255,255,0.9), 0 4px 10px rgba(0,0,0,0.5);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.launcher-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.launcher-btn {
+  padding: 9px 24px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  transition: background 0.15s;
+}
+.launcher-btn.is-charging {
+  background: rgba(250,204,21,0.20);
+  border-color: #facc15;
+  animation: launcher-pulse 0.45s ease-in-out infinite alternate;
+}
+@keyframes launcher-pulse {
+  from { box-shadow: 0 0 6px rgba(250,204,21,0.15); }
+  to   { box-shadow: 0 0 26px rgba(250,204,21,0.65); }
 }

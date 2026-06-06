@@ -78,6 +78,9 @@ class MixerUI {
               : isSynth
               ? `<div class="micro-fader-wrap" id="fader-${index}">
                    <div class="micro-fader-display" id="vol-display-${index}">${channel.vol.toFixed(3)}</div>
+                   <div class="micro-fader-bar-bg">
+                     <div class="micro-fader-bar-fill" id="vol-bar-${index}" style="width:${channel.vol}%"></div>
+                   </div>
                    <div class="micro-fader-btns">
                      <button class="micro-fader-btn micro-fader-btn--minus" id="micro-minus-${index}" type="button">−</button>
                      <button class="micro-fader-btn micro-fader-btn--plus" id="micro-plus-${index}" type="button">+</button>
@@ -219,10 +222,74 @@ class MixerUI {
   }
 
   bindMasterControls() {
-    this.masterFader.addEventListener("input", (e) => {
-      this.engine.setMasterVolume(e.target.value);
-      this.masterVal.textContent = this.engine.masterVolume;
-      this.setSliderFill(this.masterFader, this.engine.masterVolume);
+    const launcherBtn  = document.getElementById('launcherBtn');
+    const launcherFill = document.getElementById('launcherFill');
+    const launcherBall = document.getElementById('launcherBall');
+    const CHARGE_MAX   = 3000; // ms pour 0→100%
+    let   pressStart   = null;
+
+    const applyVolume = (pct) => {
+      const v = Math.round(Math.max(0, Math.min(100, pct)));
+      this.engine.setMasterVolume(v);
+      this.masterFader.value = v;
+      this.masterVal.textContent = v;
+      this.setSliderFill(this.masterFader, v);
+    };
+
+    const resetUI = () => {
+      launcherFill.style.transition = 'none';
+      launcherFill.style.width = '0%';
+      launcherBall.style.transition = 'none';
+      launcherBall.style.left = '0%';
+      launcherBall.style.opacity = '0';
+      launcherBall.style.transform = 'translate(-50%, -50%) scale(1)';
+      launcherBtn.classList.remove('is-charging');
+    };
+
+    const fireBall = (heldMs) => {
+      const pct = Math.min(100, (heldMs / CHARGE_MAX) * 100);
+      launcherFill.style.transition = 'none';
+      launcherFill.style.width = '0%';
+      launcherBtn.classList.remove('is-charging');
+
+      // launch ball
+      launcherBall.style.transition = 'none';
+      launcherBall.style.left = '0%';
+      launcherBall.style.opacity = '1';
+      // force reflow so transition triggers
+      void launcherBall.offsetWidth;
+      const flyMs = 300 + pct * 12;
+      launcherBall.style.transition = `left ${flyMs}ms cubic-bezier(0.15, 0.8, 0.5, 1)`;
+      launcherBall.style.left = pct + '%';
+
+      setTimeout(() => {
+        applyVolume(pct);
+        launcherBall.style.transform = 'translate(-50%, -50%) scale(1.7)';
+        setTimeout(() => {
+          launcherBall.style.transition += ', transform 0.15s ease';
+          launcherBall.style.transform = 'translate(-50%, -50%) scale(1)';
+        }, 80);
+      }, flyMs);
+    };
+
+    launcherBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      launcherBtn.setPointerCapture(e.pointerId);
+      pressStart = performance.now();
+      resetUI();
+      launcherBtn.classList.add('is-charging');
+      // On ne montre PAS la barre pendant la charge — surprise au relâchement
+    });
+
+    launcherBtn.addEventListener('pointerup', () => {
+      if (pressStart === null) return;
+      fireBall(performance.now() - pressStart);
+      pressStart = null;
+    });
+
+    launcherBtn.addEventListener('pointercancel', () => {
+      pressStart = null;
+      resetUI();
     });
 
     this.btnPlay.addEventListener("click", async () => {
@@ -285,6 +352,8 @@ class MixerUI {
       } else if (index === 3) {
         const display = document.getElementById(`vol-display-${index}`);
         if (display) display.textContent = channel.vol.toFixed(3);
+        const bar = document.getElementById(`vol-bar-${index}`);
+        if (bar) bar.style.width = `${channel.vol}%`;
       } else {
         fader.value = channel.vol;
         this.setSliderFill(fader, channel.vol);
