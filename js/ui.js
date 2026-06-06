@@ -46,6 +46,9 @@ class MixerUI {
       channelEl.style.setProperty("--channel-color-soft", `${channel.color}33`);
       channelEl.style.setProperty("--channel-glow", `radial-gradient(circle at 50% 0%, ${channel.color}22, transparent 55%)`);
 
+      const isSnare = index === 1;
+      const isSynth = index === 3;
+
       channelEl.innerHTML = `
         <header class="channel-top">
           <div>
@@ -61,14 +64,31 @@ class MixerUI {
           <p id="file-name-${index}" class="file-name">aucun fichier</p>
         </div>
 
-        <div class="channel-body ${isKick ? 'is-pump-mode' : ''}">
+        <div class="channel-body ${isKick ? 'is-pump-mode' : ''} ${isSynth ? 'is-synth-mode' : ''}">
           <div class="fader-wrap">
             ${isKick ? '<button id="pump-kick" class="pump-btn">⚡</button>' : ''}
-            <input class="fader" id="fader-${index}" type="range" min="0" max="100" value="${channel.vol}" />
+            ${isSnare
+              ? `<div class="fake-vertical-fader" id="fader-${index}" data-value="${channel.vol}">
+                   <div class="fake-fader-track">
+                     <div class="fake-fader-fill" id="fader-fill-${index}" style="height:${(channel.vol/100)*(220-38)}px; bottom:0"></div>
+                     <div class="fake-fader-thumb" id="fader-thumb-${index}" style="bottom:${(channel.vol/100)*(220-38)}px"></div>
+                   </div>
+                   <div class="fake-fader-hint">← →</div>
+                 </div>`
+              : isSynth
+              ? `<div class="micro-fader-wrap" id="fader-${index}">
+                   <div class="micro-fader-display" id="vol-display-${index}">${channel.vol.toFixed(3)}</div>
+                   <div class="micro-fader-btns">
+                     <button class="micro-fader-btn micro-fader-btn--minus" id="micro-minus-${index}" type="button">−</button>
+                     <button class="micro-fader-btn micro-fader-btn--plus" id="micro-plus-${index}" type="button">+</button>
+                   </div>
+                 </div>`
+              : `<input class="fader" id="fader-${index}" type="range" min="0" max="100" value="${channel.vol}" />`
+            }
           </div>
-          <div class="mini-vu" id="vu-${index}">
-            ${[1, 2, 3, 4, 5, 6].map((barIndex) => `<div class="mini-vu-bar" data-bar="${barIndex}" style="height:${22 + barIndex * 27}px"></div>`).join("")}
-          </div>
+          ${(isSynth || index === 1) ? '' : `<div class="mini-vu" id="vu-${index}">
+            ${[1, 2, 3, 4, 5, 6].map((barIndex) => '<div class="mini-vu-bar" data-bar="' + barIndex + '" style="height:' + (22 + barIndex * 27) + 'px"></div>').join("")}
+          </div>`}
         </div>
 
         <div class="channel-value-row">
@@ -128,33 +148,54 @@ class MixerUI {
       document.getElementById(`file-name-${index}`).textContent = `${res.fileName} • ${this.formatTime(res.duration)}`;
     });
 
-    fader.addEventListener("input", (e) => {
-      let value = Number(e.target.value);
-      
-      // SNARE: random value around fader position
-      if (index === 1) {
-        const range = 15; // ±15% around fader position
-        const randomOffset = (Math.random() - 0.5) * (range * 2);
-        value = Math.max(0, Math.min(100, value + randomOffset));
+    // SNARE: fake vertical, contrôle horizontal
+    if (index === 1) {
+      let dragging = false, startX = 0, startVol = 0;
+      const TRACK_H = 220, THUMB_H = 38;
+      const updateFader = (vol) => {
+        const v = Math.max(0, Math.min(100, vol));
+        this.engine.setVolume(index, v);
+        const pct = v / 100;
+        const fill  = document.getElementById(`fader-fill-${index}`);
+        const thumb = document.getElementById(`fader-thumb-${index}`);
+        if (fill)  fill.style.height = `${pct * (TRACK_H - THUMB_H)}px`;
+        if (thumb) thumb.style.bottom = `${pct * (TRACK_H - THUMB_H)}px`;
+        fader.dataset.value = v;
+        this.refreshChannelVisual(index);
+      };
+      fader.addEventListener("pointerdown", (e) => {
+        dragging = true; startX = e.clientX; startVol = Number(fader.dataset.value);
+        fader.setPointerCapture(e.pointerId); fader.classList.add("is-dragging");
+      });
+      fader.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        updateFader(startVol + ((e.clientX - startX) / 200) * 100);
+      });
+      fader.addEventListener("pointerup",     () => { dragging = false; fader.classList.remove("is-dragging"); });
+      fader.addEventListener("pointercancel", () => { dragging = false; fader.classList.remove("is-dragging"); });
+
+    // SYNTH: boutons +/- à 0.001
+    } else if (index === 3) {
+      document.getElementById(`micro-plus-${index}`).addEventListener("click", () => {
+        this.engine.setVolume(index, Math.min(100, this.engine.channels[index].vol + 0.001));
+        this.refreshChannelVisual(index);
+      });
+      document.getElementById(`micro-minus-${index}`).addEventListener("click", () => {
+        this.engine.setVolume(index, Math.max(0, this.engine.channels[index].vol - 0.001));
+        this.refreshChannelVisual(index);
+      });
+
+    } else {
+      fader.addEventListener("input", (e) => {
+        let value = Number(e.target.value);
+        if (index === 2) {
+          fader.classList.add('fader-rotating');
+          setTimeout(() => fader.classList.remove('fader-rotating'), 600);
+        }
         this.engine.setVolume(index, value);
-      }
-      // BASS: rotation animation + normal volume control
-      else if (index === 2) {
-        // Add rotation animation
-        fader.classList.add('fader-rotating');
-        setTimeout(() => {
-          fader.classList.remove('fader-rotating');
-        }, 600);
-        
-        // Control volume normally
-        this.engine.setVolume(index, value);
-      }
-      else {
-        this.engine.setVolume(index, value);
-      }
-      
-      this.refreshChannelVisual(index);
-    });
+        this.refreshChannelVisual(index);
+      });
+    }
 
     muteButton.addEventListener("click", () => {
       this.engine.toggleMute(index);
@@ -234,14 +275,24 @@ class MixerUI {
     const headerVal = document.getElementById(`header-vol-${index}`);
 
     if (fader) {
-      fader.value = channel.vol;
-      this.setSliderFill(fader, channel.vol);  // Update visual fill
+      if (index === 1) {
+        const TRACK_H = 220, THUMB_H = 38, pct = channel.vol / 100;
+        const fill  = document.getElementById(`fader-fill-${index}`);
+        const thumb = document.getElementById(`fader-thumb-${index}`);
+        if (fill)  fill.style.height = `${pct * (TRACK_H - THUMB_H)}px`;
+        if (thumb) thumb.style.bottom = `${pct * (TRACK_H - THUMB_H)}px`;
+        fader.dataset.value = channel.vol;
+      } else if (index === 3) {
+        const display = document.getElementById(`vol-display-${index}`);
+        if (display) display.textContent = channel.vol.toFixed(3);
+      } else {
+        fader.value = channel.vol;
+        this.setSliderFill(fader, channel.vol);
+      }
     }
     const rounded = Math.round(channel.vol);
     if (valText) valText.textContent = rounded;
     if (headerVal) headerVal.textContent = rounded;
-    
-    this.setSliderFill(fader, channel.vol);
   }
 
   setupKnob(canvas, options) {
